@@ -20,7 +20,7 @@
  *      roundup_pow_of_two(max(min(net.core.somaxconn, net.ipv4.tcp_max_syn_backlog),8)+1)
  */
 #define DEFAULT_LISTEN_BACKLOG   10240
-#define DEFAULT_MAX_CLIENT_COUNT 100000
+#define DEFAULT_MAX_session_COUNT 100000
 #define DEFAULT_LISTEN_PORT      12345
 
 #endif //ANET_DEFINE_H

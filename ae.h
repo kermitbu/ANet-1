@@ -24,11 +24,11 @@
 struct aeEventLoop;
 struct aeApiState;
 /* Types and data structures */
-typedef void aeFileProc(struct aeEventLoop *eventLoop, int fd, void *clientData, int mask);
+typedef void aeFileProc(struct aeEventLoop *eventLoop, int fd, void *sessionData, int mask);
 
-typedef int aeTimeProc(struct aeEventLoop *eventLoop, long long id, void *clientData);
+typedef int aeTimeProc(struct aeEventLoop *eventLoop, long long id, void *sessionData);
 
-typedef void aeEventFinalizerProc(struct aeEventLoop *eventLoop, void *clientData);
+typedef void aeEventFinalizerProc(struct aeEventLoop *eventLoop, void *sessionData);
 
 typedef void aeBeforeSleepProc(struct aeEventLoop *eventLoop);
 
@@ -37,7 +37,7 @@ typedef struct aeFileEvent {
     int mask;       /* one of AE_(READABLE|WRITABLE) */
     aeFileProc *rfileProc;
     aeFileProc *wfileProc;
-    void *clientData;
+    void *sessionData;
 } aeFileEvent;
 
 /* Time event structure */
@@ -47,7 +47,7 @@ typedef struct aeTimeEvent {
     long when_ms;       /* milliseconds */
     aeTimeProc *timeProc;
     aeEventFinalizerProc *finalizerProc;
-    void *clientData;
+    void *sessionData;
     struct aeTimeEvent *next;
 } aeTimeEvent;
 
@@ -77,14 +77,14 @@ void aeDeleteEventLoop(aeEventLoop *eventLoop);
 
 void aeStop(aeEventLoop *eventLoop);
 
-int aeCreateFileEvent(aeEventLoop *eventLoop, int fd, int mask, aeFileProc *proc, void *clientData);
+int aeCreateFileEvent(aeEventLoop *eventLoop, int fd, int mask, aeFileProc *proc, void *sessionData);
 
 void aeDeleteFileEvent(aeEventLoop *eventLoop, int fd, int mask);
 
 int aeGetFileEvents(aeEventLoop *eventLoop, int fd);
 
 long long aeCreateTimeEvent(aeEventLoop *eventLoop, long long milliseconds,
-                            aeTimeProc *proc, void *clientData, aeEventFinalizerProc *finalizerProc);
+                            aeTimeProc *proc, void *sessionData, aeEventFinalizerProc *finalizerProc);
 
 int aeDeleteTimeEvent(aeEventLoop *eventLoop, long long id);
 

@@ -246,7 +246,7 @@ void aeStop(aeEventLoop *eventLoop) {
     eventLoop->stop = 1;
 }
 
-int aeCreateFileEvent(aeEventLoop *eventLoop, int fd, int mask, aeFileProc *proc, void *clientData) {
+int aeCreateFileEvent(aeEventLoop *eventLoop, int fd, int mask, aeFileProc *proc, void *sessionData) {
     if (fd >= eventLoop->setsize) {
         errno = ERANGE;
         return AE_ERR;
@@ -266,7 +266,7 @@ int aeCreateFileEvent(aeEventLoop *eventLoop, int fd, int mask, aeFileProc *proc
         fe->wfileProc = proc;
     }
 
-    fe->clientData = clientData;
+    fe->sessionData = sessionData;
     if (fd > eventLoop->maxfd) {
         eventLoop->maxfd = fd;
     }
@@ -332,7 +332,7 @@ static void aeAddMillisecondsToNow(long long milliseconds, long *sec, long *ms) 
 }
 
 long long aeCreateTimeEvent(aeEventLoop *eventLoop, long long milliseconds,
-                            aeTimeProc *proc, void *clientData, aeEventFinalizerProc *finalizerProc) {
+                            aeTimeProc *proc, void *sessionData, aeEventFinalizerProc *finalizerProc) {
     long long id = eventLoop->timeEventNextId++;
     aeTimeEvent *te = new aeTimeEvent;
     if (te == NULL) {
@@ -343,7 +343,7 @@ long long aeCreateTimeEvent(aeEventLoop *eventLoop, long long milliseconds,
     aeAddMillisecondsToNow(milliseconds, &te->when_sec, &te->when_ms);
     te->timeProc = proc;
     te->finalizerProc = finalizerProc;
-    te->clientData = clientData;
+    te->sessionData = sessionData;
 
     te->next = eventLoop->timeEventHead;
     eventLoop->timeEventHead = te;
@@ -431,7 +431,7 @@ static int processTimeEvents(aeEventLoop *eventLoop) {
             }
 
             if (te->finalizerProc) {
-                te->finalizerProc(eventLoop, te->clientData);
+                te->finalizerProc(eventLoop, te->sessionData);
             }
 
             zfree(te);
@@ -453,7 +453,7 @@ static int processTimeEvents(aeEventLoop *eventLoop) {
             int retval;
 
             id = te->id;
-            retval = te->timeProc(eventLoop, id, te->clientData);
+            retval = te->timeProc(eventLoop, id, te->sessionData);
             processed++;
             if (retval != AE_NOMORE) {
                 aeAddMillisecondsToNow(retval, &te->when_sec, &te->when_ms);
@@ -540,11 +540,11 @@ int aeProcessEvents(aeEventLoop *eventLoop, int flags) {
              * processed, so we check if the event is still valid. */
             if (fe->mask & mask & AE_READABLE) {
                 rfired = 1;
-                fe->rfileProc(eventLoop, fd, fe->clientData, mask);
+                fe->rfileProc(eventLoop, fd, fe->sessionData, mask);
             }
             if (fe->mask & mask & AE_WRITABLE) {
                 if (!rfired || fe->wfileProc != fe->rfileProc) {
-                    fe->wfileProc(eventLoop, fd, fe->clientData, mask);
+                    fe->wfileProc(eventLoop, fd, fe->sessionData, mask);
                 }
             }
             processed++;

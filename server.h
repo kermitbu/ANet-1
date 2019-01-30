@@ -11,7 +11,7 @@ typedef struct {
     int listen_fd;
     int port;
     int backlog;
-    int max_client_count;
+    int max_session_count;
     char err_info[ANET_ERR_LEN];
 } server_t;
 

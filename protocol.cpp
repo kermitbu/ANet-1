@@ -78,7 +78,7 @@ void do_package(package_t *req_package, package_t **resp_package)
             }
             break;
         case CHAT_MESSAGE:
-            // client send data with '\0'
+            // session send data with '\0'
             printf("chat message: No.%d %s\n", n++, req_package->data);
             break;
         default:
