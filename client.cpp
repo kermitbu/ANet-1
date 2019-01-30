@@ -73,7 +73,7 @@ int main()
         }
     }
 
-    zfree(package);
+    free(package);
     close(conn_fd);
 
     return 0;

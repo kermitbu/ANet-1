@@ -26,7 +26,7 @@ void free_package(package_t *package)
 
 int packet_decode(buffer_t *buffer, package_t **package)
 {
-    size_t data_len = get_readable_size(buffer);
+    size_t data_len = buffer->get_readable_size();
     if (data_len < sizeof(package_head_t)) {
         return -1;
     }
@@ -51,7 +51,7 @@ int packet_decode(buffer_t *buffer, package_t **package)
 
 int package_encode(buffer_t *buffer, package_t *package)
 {
-    size_t avlid_size = get_writeable_size(buffer);
+    size_t avlid_size = buffer->get_writeable_size();
     size_t package_len = sizeof(package_head_t) + package->head.length;
 
     if (avlid_size < package_len) {

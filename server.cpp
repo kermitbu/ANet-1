@@ -9,33 +9,24 @@
 #include <errno.h>
 #include <signal.h>
 
-client_t *alloc_client()
+session_t *alloc_client()
 {
-    client_t * client = new client_t();
+    session_t * client = new session_t();
     if (client == NULL) {
         goto err;
     }
     client->loop = NULL;
     client->fd = -1;
-    client->read_buffer = alloc_buffer();
-    client->write_buffer = alloc_buffer();
-    if (client->read_buffer == NULL || client->write_buffer == NULL) {
-        goto err;
-    }
+    client->read_buffer;
+    client->write_buffer;
 
     return client;
 
 err:
-    if (client) {
-        zfree(client->read_buffer);
-        zfree(client->write_buffer);
-        zfree(client);
-    }
-
     return NULL;
 }
 
-void free_client(client_t *client)
+void free_client(session_t *client)
 {
     if (client) {
         if (client->fd > 0) {
@@ -43,8 +34,6 @@ void free_client(client_t *client)
             aeDeleteFileEvent(client->loop, client->fd, AE_WRITABLE);
             close(client->fd);
         }
-        zfree(client->read_buffer);
-        zfree(client->write_buffer);
         zfree(client);
     }
 }
@@ -64,10 +53,10 @@ static int serverCron(struct aeEventLoop *loop, long long id, void *data)
 
 static void writeEventHandler(aeEventLoop *loop, int fd, void *data, int mask)
 {
-    client_t *client = (client_t *)data;
-    buffer_t *wbuffer = client->write_buffer;
+    session_t *client = (session_t *)data;
+    buffer_t *wbuffer = &client->write_buffer;
 
-    int data_size = (int)get_readable_size(wbuffer);
+    int data_size = (int)wbuffer->get_readable_size();
     if (data_size == 0) {
         aeDeleteFileEvent(client->loop, client->fd, AE_WRITABLE);
         return;
@@ -77,17 +66,17 @@ static void writeEventHandler(aeEventLoop *loop, int fd, void *data, int mask)
     if (writen > 0) {
         wbuffer->read_idx += writen;
     }
-    if (get_readable_size(wbuffer) == 0) {
+    if (wbuffer->get_readable_size() == 0) {
         aeDeleteFileEvent(client->loop, client->fd, AE_WRITABLE);
     }
 }
 
 static void readEventHandler(aeEventLoop *loop, int fd, void *data, int mask)
 {
-    client_t *client = (client_t *)data;
-    buffer_t *rbuffer = client->read_buffer;
+    session_t *client = (session_t *)data;
+    buffer_t *rbuffer = &client->read_buffer;
 
-    check_buffer_size(rbuffer, DEFAULT_BUFF_SIZE / 2);
+    rbuffer->check_buffer_size(DEFAULT_BUFF_SIZE / 2);
 
     size_t avlid_size = rbuffer->size - rbuffer->write_idx;
     ssize_t readn = read(fd, rbuffer->buff + rbuffer->write_idx, avlid_size);
@@ -101,15 +90,15 @@ static void readEventHandler(aeEventLoop *loop, int fd, void *data, int mask)
                 package_t *resp_package = NULL;
                 do_package(req_package, &resp_package);
                 if (resp_package) {
-                    buffer_t *wbuffer = client->write_buffer;
-                    check_buffer_size(wbuffer, sizeof(package_head_t) + resp_package->head.length);
+                    buffer_t *wbuffer = &client->write_buffer;
+                    wbuffer->check_buffer_size(sizeof(package_head_t) + resp_package->head.length);
                     package_encode(wbuffer, resp_package);
                     int writen = anetWrite(client->fd, (char *)wbuffer->buff + wbuffer->read_idx,
-                                           (int)get_readable_size(wbuffer));
+                                           (int)wbuffer->get_readable_size());
                     if (writen > 0) {
                         wbuffer->read_idx += writen;
                     }
-                    if (get_readable_size(wbuffer) != 0) {
+                    if (wbuffer->get_readable_size() != 0) {
                         if (aeCreateFileEvent(client->loop, client->fd,
                                               AE_WRITABLE, writeEventHandler, client) == AE_ERR) {
                             printf("create socket writeable event error, close it.");
@@ -148,7 +137,7 @@ static void acceptTcpHandler(aeEventLoop *loop, int fd, void *data, int mask)
         printf("accepted ip %s:%d\n", cip, cport);
         anetNonBlock(NULL, cfd);
         anetEnableTcpNoDelay(NULL, cfd);
-        client_t *client = alloc_client();
+        session_t *client = alloc_client();
         if (!client) {
             printf("alloc client error...close socket\n");
             close(fd);

@@ -18,9 +18,9 @@ typedef struct {
 typedef struct {
     aeEventLoop *loop;
     int fd;
-    buffer_t *read_buffer;
-    buffer_t *write_buffer;
-} client_t;
+    buffer_t read_buffer;
+    buffer_t write_buffer;
+} session_t;
 
 void init_server(server_t *server);
 void wait_server(server_t *server);
