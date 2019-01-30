@@ -11,7 +11,7 @@
 
 client_t *alloc_client()
 {
-    client_t * client = zmalloc(sizeof(client_t));
+    client_t * client = new client_t();
     if (client == NULL) {
         goto err;
     }

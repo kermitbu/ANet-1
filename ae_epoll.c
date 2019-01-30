@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <unistd.h>
+#include <cstring>
 #include <sys/epoll.h>
 
 #include "define.h"
@@ -11,12 +12,12 @@ typedef struct aeApiState {
 } aeApiState;
 
 static int aeApiCreate(aeEventLoop *eventLoop) {
-    aeApiState *state = zmalloc(sizeof(aeApiState));
-
+    aeApiState *state = new aeApiState();
+    
     if (!state) {
         goto err;
     }
-    state->events = zmalloc(sizeof(struct epoll_event) * eventLoop->setsize);
+    state->events = new struct epoll_event[eventLoop->setsize];
     if (!state->events) {
        goto err;
     }
@@ -40,7 +41,10 @@ err:
 static int aeApiResize(aeEventLoop *eventLoop, int setsize) {
     aeApiState *state = eventLoop->apidata;
 
-    state->events = zrealloc(state->events, sizeof(struct epoll_event) * setsize);
+    auto new_events = new struct epoll_event[eventLoop->setsize];
+    memcpy(state->events, new_events, sizeof(struct epoll_event) * setsize);    
+    delete [] state->events;
+    state->events = new_events;
 
     return 0;
 }

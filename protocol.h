@@ -12,16 +12,18 @@
 #define QUERY_NAME      1
 #define CHAT_MESSAGE    2
 
-typedef struct {
+#pragma pack(1)
+typedef  struct alignas(4){
     uint32_t magic;
     uint32_t type;
     uint32_t length;
-} __attribute__((packed)) package_head_t;
+} package_head_t;
 
 typedef struct {
     package_head_t head;
     unsigned char data[0];
-} __attribute__((packed)) package_t;
+} package_t;
+#pragma pack()
 
 package_t *alloc_packet(uint32_t data_len);
 void free_package(package_t *package);

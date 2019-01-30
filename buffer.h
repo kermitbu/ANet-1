@@ -2,9 +2,10 @@
 #define ANET_AEBUFFER_H
 
 #include <sys/types.h>
+#include <stdint.h>
 
 typedef struct {
-    unsigned char *buff;
+    uint8_t *buff;
     size_t size;
     size_t read_idx;
     size_t write_idx;

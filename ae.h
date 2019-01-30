@@ -22,7 +22,7 @@
 #define AE_NOTUSED(V) ((void) V)
 
 struct aeEventLoop;
-
+struct aeApiState;
 /* Types and data structures */
 typedef void aeFileProc(struct aeEventLoop *eventLoop, int fd, void *clientData, int mask);
 
@@ -67,7 +67,7 @@ typedef struct aeEventLoop {
     aeFiredEvent *fired;        /* Fired events */
     aeTimeEvent *timeEventHead;
     int stop;
-    void *apidata;              /* This is used for polling API specific data */
+    aeApiState *apidata;              /* This is used for polling API specific data */
     aeBeforeSleepProc *beforesleep;
 } aeEventLoop;
 

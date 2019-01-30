@@ -13,14 +13,14 @@
 #endif
 
 aeEventLoop *aeCreateEventLoop(int setsize) {
-    aeEventLoop *eventLoop;
+    aeEventLoop *eventLoop = new aeEventLoop;
 
-    if ((eventLoop = zmalloc(sizeof(*eventLoop))) == NULL) {
+    if (eventLoop == NULL) {
         goto err;
     }
 
-    eventLoop->events = zmalloc(sizeof(aeFileEvent) * setsize);
-    eventLoop->fired = zmalloc(sizeof(aeFiredEvent) * setsize);
+    eventLoop->events = new aeFileEvent[setsize];
+    eventLoop->fired = new aeFiredEvent[setsize];
     if (eventLoop->events == NULL || eventLoop->fired == NULL) {
         goto err;
     }
@@ -79,8 +79,16 @@ int aeResizeSetSize(aeEventLoop *eventLoop, int setsize) {
         return AE_ERR;
     }
 
-    eventLoop->events = zrealloc(eventLoop->events, sizeof(aeFileEvent) * setsize);
-    eventLoop->fired = zrealloc(eventLoop->fired, sizeof(aeFiredEvent) * setsize);
+    auto new_events = new aeFileEvent[setsize];
+    memcpy(eventLoop->events, new_events, sizeof(struct aeFileEvent) * setsize);    
+    delete [] eventLoop->events;
+    eventLoop->events = new_events;
+
+    auto new_fired = new aeFiredEvent[setsize];
+    memcpy(eventLoop->fired, new_fired, sizeof(struct aeFiredEvent) * setsize);    
+    delete [] eventLoop->fired;
+    eventLoop->fired = new_fired;
+
     eventLoop->setsize = setsize;
 
     /* Make sure that if we created new slots, they are initialized with an AE_NONE mask. */
@@ -190,9 +198,7 @@ static void aeAddMillisecondsToNow(long long milliseconds, long *sec, long *ms) 
 long long aeCreateTimeEvent(aeEventLoop *eventLoop, long long milliseconds,
                             aeTimeProc *proc, void *clientData, aeEventFinalizerProc *finalizerProc) {
     long long id = eventLoop->timeEventNextId++;
-    aeTimeEvent *te;
-
-    te = zmalloc(sizeof(*te));
+    aeTimeEvent *te = new aeTimeEvent;
     if (te == NULL) {
         return AE_ERR;
     }

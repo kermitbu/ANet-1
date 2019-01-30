@@ -8,11 +8,11 @@
 
 buffer_t *alloc_buffer()
 {
-    buffer_t *buffer = zmalloc(sizeof(buffer_t));
+    buffer_t *buffer = (buffer_t*)malloc(sizeof(buffer_t));
     if (buffer == NULL) {
         goto err;
     }
-    buffer->buff = zmalloc(DEFAULT_BUFF_SIZE);
+    buffer->buff =(uint8_t*)malloc(DEFAULT_BUFF_SIZE);
     buffer->size = DEFAULT_BUFF_SIZE;
     buffer->read_idx = 0;
     buffer->write_idx = 0;
@@ -46,7 +46,11 @@ void check_buffer_size(buffer_t *buffer, size_t avlid_size)
     }
     if (get_writeable_size(buffer) < avlid_size) {
         size_t new_size = buffer->size + avlid_size;
-        buffer->buff = zrealloc(buffer->buff, new_size);
+
+        auto new_buff = new uint8_t[new_size];
+        memcpy(new_buff, buffer->buff, buffer->size);
+        delete []buffer->buff;
+        buffer->buff = new_buff;
         buffer->size = new_size;
     }
 }

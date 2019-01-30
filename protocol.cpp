@@ -9,7 +9,7 @@
 
 package_t *alloc_packet(uint32_t data_len)
 {
-    package_t *package = zmalloc(sizeof(package_head_t) + data_len);
+    package_t *package = (package_t*)malloc(sizeof(package_head_t) + data_len);
 
     if (package) {
         package->head.magic = MAGIC_NUMBER;
@@ -21,7 +21,7 @@ package_t *alloc_packet(uint32_t data_len)
 
 void free_package(package_t *package)
 {
-    zfree(package);
+    free(package);
 }
 
 int packet_decode(buffer_t *buffer, package_t **package)
@@ -40,7 +40,7 @@ int packet_decode(buffer_t *buffer, package_t **package)
         return -1;
     }
 
-    package_t *new_package = zmalloc(package_len);
+    package_t *new_package = (package_t*)malloc(package_len);
     memcpy(new_package, buffer->buff + buffer->read_idx, package_len);
     buffer->read_idx += package_len;
 
