@@ -1,5 +1,3 @@
-#include "fmacros.h"
-
 #include "anet.h"
 
 #include <sys/stat.h>
@@ -142,7 +140,7 @@ int anetSetSendBuffer(char *err, int fd, int buffsize) {
 
 /* Set the socket send timeout (SO_SNDTIMEO socket option) to the specified
  * number of milliseconds, or disable it if the 'ms' argument is zero. */
-int anetSendTimeout(char *err, int fd, long long ms) {
+int anetSendTimeout(char *err, int fd, int64_t ms) {
     struct timeval tv;
 
     tv.tv_sec = ms / 1000;
@@ -326,40 +324,6 @@ int anetTcpNonBlockBestEffortBindConnect(char *err, char *addr, int port, char *
     return anetTcpGenericConnect(err, addr, port, source_addr, ANET_CONNECT_NONBLOCK | ANET_CONNECT_BE_BINDING);
 }
 
-static int anetUnixGenericConnect(char *err, char *path, int flags) {
-    int s;
-    struct sockaddr_un sa;
-
-    if ((s = anetCreateSocket(err, AF_LOCAL)) == ANET_ERR)
-        return ANET_ERR;
-
-    sa.sun_family = AF_LOCAL;
-    strncpy(sa.sun_path, path, sizeof(sa.sun_path) - 1);
-    if (flags & ANET_CONNECT_NONBLOCK) {
-        if (anetNonBlock(err, s) != ANET_OK) {
-            return ANET_ERR;
-        }
-    }
-    if (connect(s, (struct sockaddr *) &sa, sizeof(sa)) == -1) {
-        if (errno == EINPROGRESS && flags & ANET_CONNECT_NONBLOCK) {
-            return s;
-        }
-        anetSetError(err, "connect: %s", strerror(errno));
-        close(s);
-        return ANET_ERR;
-    }
-
-    return s;
-}
-
-int anetUnixConnect(char *err, char *path) {
-    return anetUnixGenericConnect(err, path, ANET_CONNECT_NONE);
-}
-
-int anetUnixNonBlockConnect(char *err, char *path) {
-    return anetUnixGenericConnect(err, path, ANET_CONNECT_NONBLOCK);
-}
-
 /* Like read(2) but make sure 'count' is read before to return
  * (unless error or EOF condition is encountered) */
 int anetRead(int fd, char *buf, int count) {
@@ -425,7 +389,7 @@ static int anetV6Only(char *err, int s) {
     return ANET_OK;
 }
 
-static int _anetTcpServer(char *err, int port, char *bindaddr, int af, int backlog) {
+int anetTcpServer(char *err, int af, const std::string& bindaddr, int port, int backlog) {
     int s, rv;
     char _port[6];  /* strlen("65535") */
     struct addrinfo hints, *servinfo, *p;
@@ -436,7 +400,7 @@ static int _anetTcpServer(char *err, int port, char *bindaddr, int af, int backl
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_flags = AI_PASSIVE;    /* No effect if bindaddr != NULL */
 
-    if ((rv = getaddrinfo(bindaddr, _port, &hints, &servinfo)) != 0) {
+    if ((rv = getaddrinfo(bindaddr.c_str(), _port, &hints, &servinfo)) != 0) {
         anetSetError(err, "%s", gai_strerror(rv));
         return ANET_ERR;
     }
@@ -470,35 +434,6 @@ end:
     return s;
 }
 
-int anetTcpServer(char *err, int port, char *bindaddr, int backlog) {
-    return _anetTcpServer(err, port, bindaddr, AF_INET, backlog);
-}
-
-int anetTcp6Server(char *err, int port, char *bindaddr, int backlog) {
-    return _anetTcpServer(err, port, bindaddr, AF_INET6, backlog);
-}
-
-int anetUnixServer(char *err, char *path, mode_t perm, int backlog) {
-    int s;
-    struct sockaddr_un sa;
-
-    if ((s = anetCreateSocket(err, AF_LOCAL)) == ANET_ERR) {
-        return ANET_ERR;
-    }
-
-    memset(&sa, 0, sizeof(sa));
-    sa.sun_family = AF_LOCAL;
-    strncpy(sa.sun_path, path, sizeof(sa.sun_path) - 1);
-
-    if (anetListen(err, s, (struct sockaddr *) &sa, sizeof(sa), backlog) == ANET_ERR) {
-        return ANET_ERR;
-    }
-    if (perm) {
-        chmod(sa.sun_path, perm);
-    }
-
-    return s;
-}
 
 static int anetGenericAccept(char *err, int s, struct sockaddr *sa, socklen_t *len) {
     int fd;
@@ -542,17 +477,6 @@ int anetTcpAccept(char *err, int s, char *ip, socklen_t ip_len, int *port) {
         if (port) {
             *port = ntohs(s->sin6_port);
         }
-    }
-
-    return fd;
-}
-
-int anetUnixAccept(char *err, int s) {
-    int fd;
-    struct sockaddr_un sa;
-    socklen_t salen = sizeof(sa);
-    if ((fd = anetGenericAccept(err, s, (struct sockaddr *) &sa, &salen)) == -1) {
-        return ANET_ERR;
     }
 
     return fd;

@@ -1,5 +1,5 @@
 #include "anet.h"
-#include "define.h"
+
 #include "protocol.h"
 
 #include <stdio.h>
@@ -10,7 +10,7 @@
 int main()
 {
     char err[ANET_ERR_LEN];
-    int conn_fd = anetTcpConnect(err, "127.0.0.1", DEFAULT_LISTEN_PORT);
+    int conn_fd = anetTcpConnect(err, "127.0.0.1", 12345);
     if (conn_fd == ANET_ERR) {
         printf("connect error: %s\n", err);
         return -1;
@@ -60,7 +60,7 @@ int main()
         if (anetWrite(conn_fd, (char *)package, package_len) < 0) {
             printf("send error, exit.");
         }
-        usleep(10000);
+        usleep(100);
     }
 
     printf("more slow send ...\n");
@@ -69,7 +69,7 @@ int main()
             if (anetWrite(conn_fd, (char *) package + i, 1) < 0) {
                 printf("send error, exit.");
             }
-            usleep(10000);
+            usleep(1000);
         }
     }
 

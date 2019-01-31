@@ -3,6 +3,7 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <string>
 
 #define ANET_OK         0
 #define ANET_ERR        -1
@@ -17,20 +18,13 @@ int anetTcpNonBlockConnect(char *err, char *addr, int port);
 int anetTcpNonBlockBindConnect(char *err, char *addr, int port, char *source_addr);
 int anetTcpNonBlockBestEffortBindConnect(char *err, char *addr, int port, char *source_addr);
 
-int anetUnixConnect(char *err, char *path);
-int anetUnixNonBlockConnect(char *err, char *path);
-
 int anetResolve(char *err, char *host, char *ipbuf, socklen_t ipbuf_len);
 int anetResolveIP(char *err, char *host, char *ipbuf, socklen_t ipbuf_len);
 
-int anetTcpServer(char *err, int port, char *bindaddr, int backlog);
-int anetTcp6Server(char *err, int port, char *bindaddr, int backlog);
 
-int anetUnixServer(char *err, char *path, mode_t perm, int backlog);
+int anetTcpServer(char *err, int af, const std::string& bindaddr, int port, int backlog);
 
 int anetTcpAccept(char *err, int serversock, char *ip, socklen_t ip_len, int *port);
-
-int anetUnixAccept(char *err, int serversock);
 
 int anetRead(int fd, char *buf, int count);
 int anetWrite(int fd, char *buf, int count);
@@ -45,7 +39,7 @@ int anetTcpKeepAlive(char *err, int fd);
 int anetKeepAlive(char *err, int fd, int interval);    /* interval for linux only */
 
 int anetSetSendBuffer(char *err, int fd, int buffsize);
-int anetSendTimeout(char *err, int fd, long long ms);
+int anetSendTimeout(char *err, int fd, int64_t ms);
 
 int anetFormatPeer(int fd, char *buf, size_t buf_len);
 int anetFormatSock(int fd, char *buf, size_t buf_len);

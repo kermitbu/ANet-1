@@ -5,8 +5,6 @@
 #include <string.h>
 #include <assert.h>
 
-#include "define.h"
-
 package_t *alloc_packet(uint32_t data_len)
 {
     package_t *package = (package_t*)malloc(sizeof(package_head_t) + data_len);
