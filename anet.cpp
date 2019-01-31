@@ -142,7 +142,7 @@ int anetSetSendBuffer(char *err, int fd, int buffsize) {
 
 /* Set the socket send timeout (SO_SNDTIMEO socket option) to the specified
  * number of milliseconds, or disable it if the 'ms' argument is zero. */
-int anetSendTimeout(char *err, int fd, long long ms) {
+int anetSendTimeout(char *err, int fd, int64_t ms) {
     struct timeval tv;
 
     tv.tv_sec = ms / 1000;

@@ -38,7 +38,7 @@ int anetTcpKeepAlive(char *err, int fd);
 int anetKeepAlive(char *err, int fd, int interval);    /* interval for linux only */
 
 int anetSetSendBuffer(char *err, int fd, int buffsize);
-int anetSendTimeout(char *err, int fd, long long ms);
+int anetSendTimeout(char *err, int fd, int64_t ms);
 
 int anetFormatPeer(int fd, char *buf, size_t buf_len);
 int anetFormatSock(int fd, char *buf, size_t buf_len);

@@ -26,7 +26,7 @@ struct aeApiState;
 /* Types and data structures */
 typedef void aeFileProc(struct aeEventLoop *eventLoop, int fd, void *sessionData, int mask);
 
-typedef int aeTimeProc(struct aeEventLoop *eventLoop, long long id, void *sessionData);
+typedef int aeTimeProc(struct aeEventLoop *eventLoop, int64_t id, void *sessionData);
 
 typedef void aeEventFinalizerProc(struct aeEventLoop *eventLoop, void *sessionData);
 
@@ -42,7 +42,7 @@ typedef struct aeFileEvent {
 
 /* Time event structure */
 typedef struct aeTimeEvent {
-    long long id;       /* time event identifier. */
+    int64_t id;       /* time event identifier. */
     long when_sec;      /* seconds */
     long when_ms;       /* milliseconds */
     aeTimeProc *timeProc;
@@ -72,9 +72,9 @@ public:
 
     int aeResizeSetSize(int setsize);
 
-    long long aeCreateTimeEvent(long long milliseconds, aeTimeProc *proc, void *sessionData, aeEventFinalizerProc *finalizerProc);
+    int64_t aeCreateTimeEvent(int64_t milliseconds, aeTimeProc *proc, void *sessionData, aeEventFinalizerProc *finalizerProc);
 
-    int aeDeleteTimeEvent(long long id);
+    int aeDeleteTimeEvent(int64_t id);
 
     int aeProcessEvents(int flags);
 
@@ -88,7 +88,7 @@ void aeSetBeforeSleepProc(aeBeforeSleepProc *beforesleep);
 
     int maxfd; /* highest file descriptor currently registered */
     int setsize; /* max number of file descriptors tracked */
-    long long timeEventNextId;
+    int64_t timeEventNextId;
     time_t lastTime; /* Used to detect system clock skew */
     aeFileEvent* events; /* Registered events */
     aeFiredEvent* fired; /* Fired events */

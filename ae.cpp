@@ -302,7 +302,7 @@ static void aeGetTime(long *seconds, long *milliseconds) {
     *milliseconds = tv.tv_usec / 1000;
 }
 
-static void aeAddMillisecondsToNow(long long milliseconds, long *sec, long *ms) {
+static void aeAddMillisecondsToNow(int64_t milliseconds, long *sec, long *ms) {
     long cur_sec, cur_ms, when_sec, when_ms;
 
     aeGetTime(&cur_sec, &cur_ms);
@@ -316,9 +316,9 @@ static void aeAddMillisecondsToNow(long long milliseconds, long *sec, long *ms) 
     *ms = when_ms;
 }
 
-long long aeEventLoop::aeCreateTimeEvent(long long milliseconds,
+int64_t aeEventLoop::aeCreateTimeEvent(int64_t milliseconds,
                             aeTimeProc *proc, void *sessionData, aeEventFinalizerProc *finalizerProc) {
-    long long id = this->timeEventNextId++;
+    int64_t id = this->timeEventNextId++;
     aeTimeEvent *te = new aeTimeEvent;
     if (te == NULL) {
         return AE_ERR;
@@ -336,7 +336,7 @@ long long aeEventLoop::aeCreateTimeEvent(long long milliseconds,
     return id;
 }
 
-int aeEventLoop::aeDeleteTimeEvent(long long id) {
+int aeEventLoop::aeDeleteTimeEvent(int64_t id) {
     aeTimeEvent *te = this->timeEventHead;
     while (te) {
         if (te->id == id) {
@@ -379,7 +379,7 @@ static aeTimeEvent *aeSearchNearestTimer(aeEventLoop *eventLoop) {
 static int processTimeEvents(aeEventLoop *eventLoop) {
     int processed = 0;
     aeTimeEvent *te, *prev;
-    long long maxId;
+    int64_t maxId;
     time_t now = time(NULL);
 
     /* If the system clock is moved to the future, and then set back to the
@@ -404,7 +404,7 @@ static int processTimeEvents(aeEventLoop *eventLoop) {
     maxId = eventLoop->timeEventNextId - 1;
     while (te) {
         long now_sec, now_ms;
-        long long id;
+        int64_t id;
 
         /* Remove events scheduled for deletion. */
         if (te->id == AE_DELETED_EVENT_ID) {
@@ -492,7 +492,7 @@ int aeEventLoop::aeProcessEvents(int flags) {
             tvp = &tv;
 
             /* How many milliseconds we need to wait for the next time event to fire? */
-            long long ms = (shortest->when_sec - now_sec) * 1000 + shortest->when_ms - now_ms;
+            int64_t ms = (shortest->when_sec - now_sec) * 1000 + shortest->when_ms - now_ms;
 
             if (ms > 0) {
                 tvp->tv_sec = ms / 1000;
