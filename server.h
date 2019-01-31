@@ -6,23 +6,24 @@
 #include "ae.h"
 #include "buffer.h"
 
-typedef struct {
-    aeEventLoop *loop;
-    int listen_fd;
-    int port;
-    int backlog;
-    int max_session_count;
+class tcp_server{
+public:
+    int init();
+    aeEventLoop *loop{nullptr};
+    int listen_fd{0};
+    int port{0};
+    int backlog{0};
+    int max_session_count{0};
     char err_info[ANET_ERR_LEN];
-} server_t;
+};
 
-typedef struct {
-    aeEventLoop *loop;
-    int fd;
+class session_t {
+public:
+    ~session_t();
+    aeEventLoop *loop {nullptr};
+    int fd{-1};
     buffer_t read_buffer;
     buffer_t write_buffer;
-} session_t;
-
-void init_server(server_t *server);
-void wait_server(server_t *server);
+} ;
 
 #endif //ANET_SERVER_H
