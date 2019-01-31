@@ -3,7 +3,7 @@ project(xnet)
 
 set(CMAKE_CXX_FLAGS "-fPIC -m64 -std=c++11 -w")
 
-set(SOURCE_FILES ae.cpp anet.cpp protocol.cpp buffer.cpp)
+set(SOURCE_FILES ae.cpp anet.cpp protocol.cpp)
 
 add_executable(server server.cpp ${SOURCE_FILES})
 

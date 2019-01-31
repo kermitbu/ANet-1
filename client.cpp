@@ -60,7 +60,7 @@ int main()
         if (anetWrite(conn_fd, (char *)package, package_len) < 0) {
             printf("send error, exit.");
         }
-        usleep(10000);
+        usleep(100);
     }
 
     printf("more slow send ...\n");
@@ -69,7 +69,7 @@ int main()
             if (anetWrite(conn_fd, (char *) package + i, 1) < 0) {
                 printf("send error, exit.");
             }
-            usleep(10000);
+            usleep(1000);
         }
     }
 
