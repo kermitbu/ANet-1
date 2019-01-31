@@ -30,7 +30,7 @@ typedef int aeTimeProc(struct aeEventLoop *eventLoop, long long id, void *sessio
 
 typedef void aeEventFinalizerProc(struct aeEventLoop *eventLoop, void *sessionData);
 
-typedef void aeBeforeSleepProc(struct aeEventLoop *eventLoop);
+typedef void aeBeforeSleepProc();
 
 /* File event structure */
 typedef struct aeFileEvent {
@@ -58,48 +58,44 @@ typedef struct aeFiredEvent {
 } aeFiredEvent;
 
 /* State of an event based program */
-typedef struct aeEventLoop {
-    int maxfd;                  /* highest file descriptor currently registered */
-    int setsize;                /* max number of file descriptors tracked */
+class aeEventLoop final{
+public:
+    int init(int size);
+    void stop();
+
+    int aeCreateFileEvent(int fd, int mask, aeFileProc* proc, void* sessionData);
+
+    int aeGetFileEvents(int fd);
+    void aeDeleteFileEvent(int fd, int mask);
+
+    int aeGetSetSize();
+
+    int aeResizeSetSize(int setsize);
+
+    long long aeCreateTimeEvent(long long milliseconds, aeTimeProc *proc, void *sessionData, aeEventFinalizerProc *finalizerProc);
+
+    int aeDeleteTimeEvent(long long id);
+
+    int aeProcessEvents(int flags);
+
+
+
+
+void aeMain();
+void aeSetBeforeSleepProc(aeBeforeSleepProc *beforesleep);
+
+ ~aeEventLoop();
+
+    int maxfd; /* highest file descriptor currently registered */
+    int setsize; /* max number of file descriptors tracked */
     long long timeEventNextId;
-    time_t lastTime;            /* Used to detect system clock skew */
-    aeFileEvent *events;        /* Registered events */
-    aeFiredEvent *fired;        /* Fired events */
-    aeTimeEvent *timeEventHead;
-    int stop;
-    aeApiState *apidata;              /* This is used for polling API specific data */
-    aeBeforeSleepProc *beforesleep;
-} aeEventLoop;
-
-aeEventLoop *aeCreateEventLoop(int setsize);
-
-void aeDeleteEventLoop(aeEventLoop *eventLoop);
-
-void aeStop(aeEventLoop *eventLoop);
-
-int aeCreateFileEvent(aeEventLoop *eventLoop, int fd, int mask, aeFileProc *proc, void *sessionData);
-
-void aeDeleteFileEvent(aeEventLoop *eventLoop, int fd, int mask);
-
-int aeGetFileEvents(aeEventLoop *eventLoop, int fd);
-
-long long aeCreateTimeEvent(aeEventLoop *eventLoop, long long milliseconds,
-                            aeTimeProc *proc, void *sessionData, aeEventFinalizerProc *finalizerProc);
-
-int aeDeleteTimeEvent(aeEventLoop *eventLoop, long long id);
-
-int aeProcessEvents(aeEventLoop *eventLoop, int flags);
-
-void aeMain(aeEventLoop *eventLoop);
-
-int aeWait(int fd, int mask, long long milliseconds);
-
-char *aeGetApiName(void);
-
-void aeSetBeforeSleepProc(aeEventLoop *eventLoop, aeBeforeSleepProc *beforesleep);
-
-int aeGetSetSize(aeEventLoop *eventLoop);
-
-int aeResizeSetSize(aeEventLoop *eventLoop, int setsize);
+    time_t lastTime; /* Used to detect system clock skew */
+    aeFileEvent* events; /* Registered events */
+    aeFiredEvent* fired; /* Fired events */
+    aeTimeEvent* timeEventHead;
+    int stop_;
+    aeApiState* apidata; /* This is used for polling API specific data */
+    aeBeforeSleepProc* beforesleep;
+};
 
 #endif //ANET_AE_H

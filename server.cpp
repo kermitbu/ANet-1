@@ -30,8 +30,8 @@ void free_session(session_t *session)
 {
     if (session) {
         if (session->fd > 0) {
-            aeDeleteFileEvent(session->loop, session->fd, AE_READABLE);
-            aeDeleteFileEvent(session->loop, session->fd, AE_WRITABLE);
+            session->loop->aeDeleteFileEvent(session->fd, AE_READABLE);
+            session->loop->aeDeleteFileEvent(session->fd, AE_WRITABLE);
             close(session->fd);
         }
         zfree(session);
@@ -45,7 +45,7 @@ static int serverCron(struct aeEventLoop *loop, long long id, void *data)
 
     if (++count > 3) {
         printf("exit now...");
-        aeStop(loop);
+        loop->stop();
     }
 
     return 1000;
@@ -58,7 +58,7 @@ static void writeEventHandler(aeEventLoop *loop, int fd, void *data, int mask)
 
     int data_size = (int)wbuffer->get_readable_size();
     if (data_size == 0) {
-        aeDeleteFileEvent(session->loop, session->fd, AE_WRITABLE);
+        session->loop->aeDeleteFileEvent(session->fd, AE_WRITABLE);
         return;
     }
 
@@ -67,7 +67,7 @@ static void writeEventHandler(aeEventLoop *loop, int fd, void *data, int mask)
         wbuffer->read_idx += writen;
     }
     if (wbuffer->get_readable_size() == 0) {
-        aeDeleteFileEvent(session->loop, session->fd, AE_WRITABLE);
+        session->loop->aeDeleteFileEvent(session->fd, AE_WRITABLE);
     }
 }
 
@@ -99,7 +99,7 @@ static void readEventHandler(aeEventLoop *loop, int fd, void *data, int mask)
                         wbuffer->read_idx += writen;
                     }
                     if (wbuffer->get_readable_size() != 0) {
-                        if (aeCreateFileEvent(session->loop, session->fd,
+                        if (session->loop->aeCreateFileEvent(session->fd,
                                               AE_WRITABLE, writeEventHandler, session) == AE_ERR) {
                             printf("create socket writeable event error, close it.");
                             free_session(session);
@@ -147,7 +147,7 @@ static void acceptTcpHandler(aeEventLoop *loop, int fd, void *data, int mask)
         session->loop = loop;
         session->fd = cfd;
 
-        if (aeCreateFileEvent(loop, cfd, AE_READABLE, readEventHandler, session) == AE_ERR) {
+        if (loop->aeCreateFileEvent(cfd, AE_READABLE, readEventHandler, session) == AE_ERR) {
             if (errno == ERANGE) {
                 // or use aeResizeSetSize(server->loop, cfd) modify this limit
                 printf("so many session, close new.");
@@ -161,16 +161,15 @@ static void acceptTcpHandler(aeEventLoop *loop, int fd, void *data, int mask)
 
 void init_server(server_t *server)
 {
-    server->loop = aeCreateEventLoop(server->max_session_count);
-
-    //aeCreateTimeEvent(loop, 1000, serverCron, NULL, NULL);
+    server->loop = new aeEventLoop();
+    server->loop->init(server->max_session_count);
 
     server->listen_fd = anetTcpServer(server->err_info, server->port, NULL, server->backlog);
     if (server->listen_fd != ANET_ERR) {
         anetNonBlock(server->err_info, server->listen_fd);
     }
 
-    if (aeCreateFileEvent(server->loop, server->listen_fd, AE_READABLE, acceptTcpHandler, server) != AE_ERR) {
+    if (server->loop->aeCreateFileEvent(server->listen_fd, AE_READABLE, acceptTcpHandler, server) != AE_ERR) {
         char conn_info[64];
         anetFormatSock(server->listen_fd, conn_info, sizeof(conn_info));
         printf("listen on: %s\n", conn_info);
@@ -179,8 +178,8 @@ void init_server(server_t *server)
 
 void wait_server(server_t *server)
 {
-    aeMain(server->loop);
-    aeDeleteEventLoop(server->loop);
+    server->loop->aeMain();
+    delete server->loop;
 }
 
 int main()
