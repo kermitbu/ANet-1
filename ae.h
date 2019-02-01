@@ -18,9 +18,6 @@
 #define AE_NOMORE -1
 #define AE_DELETED_EVENT_ID -1
 
-/* Macros */
-#define AE_NOTUSED(V) ((void)V)
-
 struct aeEventLoop;
 struct aeApiState;
 /* Types and data structures */
@@ -58,6 +55,17 @@ typedef struct aeFiredEvent {
 /* State of an event based program */
 class aeEventLoop final {
 public:
+
+    int aeApiResize(int setsize);
+
+    void aeApiFree();
+
+    int aeApiAddEvent(int fd, int mask);
+
+    void aeApiDelEvent(int fd, int delmask) ;
+
+    int aeApiPoll(struct timeval *tvp);
+
     int init(int size);
     void stop();
 
@@ -67,7 +75,6 @@ public:
     void aeDeleteFileEvent(int fd, int mask);
 
     int aeGetSetSize();
-
     int aeResizeSetSize(int setsize);
 
     int64_t aeCreateTimeEvent(int64_t milliseconds, aeTimeProc* proc, aeEventFinalizerProc* finalizerProc);
@@ -89,8 +96,10 @@ public:
     aeFiredEvent* fired; /* Fired events */
     aeTimeEvent* timeEventHead;
     int stop_;
-    aeApiState* apidata; /* This is used for polling API specific data */
     aeBeforeSleepProc* beforesleep;
+    
+    int epfd_;
+    struct epoll_event *epes_ptr_;
 };
 
 #endif //ANET_AE_H

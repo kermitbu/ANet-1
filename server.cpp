@@ -24,7 +24,7 @@ int main()
 {
     // TODO, use sigaction or signalfd
     signal(SIGPIPE, SIG_IGN);
-    tcp_server<> server;
+    tcp_server server;
     
     server.init("127.0.0.1", 12345,
     std::bind(on_accept_connection, std::placeholders::_1),

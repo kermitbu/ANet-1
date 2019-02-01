@@ -14,14 +14,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-class session_t {
+class session_t final{
 public:
     explicit session_t(int fd, const std::string& ip, int port)
     :fd_(fd),ip_(ip),port_(port)    
     {}
-    ~session_t()
-    {
-    }
     int fd_{ -1 };
     std::string ip_;
     int port_;
@@ -29,11 +26,11 @@ public:
     buffer_t write_buffer;
 };
 
-// #define MAX_SESSIONS 100000
-//#define BACKLOG 10240
-
+ #define MAX_SESSIONS 100000
+#define BACKLOG 10240
+#define AF AF_INET
 // AF可选值AF_INET, AF_INET6
-template <int AF = AF_INET, int MAX_SESSIONS = 100000, int BACKLOG = 10240>
+// template <int AF = AF_INET, int MAX_SESSIONS = 100000, int BACKLOG = 10240>
 class tcp_server {
 public:
     int init(const std::string& bindaddr, int port,

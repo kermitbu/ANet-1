@@ -11,68 +11,29 @@
 
 #include "ae.h"
 
-typedef struct aeApiState {
-    int epfd;
-    struct epoll_event *events;
-} aeApiState;
-
-static int aeApiCreate(aeEventLoop *eventLoop) {
-    aeApiState *state = new aeApiState();
-    
-    if (!state) {
-        goto err;
-    }
-    state->events = new struct epoll_event[eventLoop->setsize];
-    if (!state->events) {
-       goto err;
-    }
-    state->epfd = epoll_create(1024);  /* 1024 is just a hint for the kernel */
-    if (state->epfd == -1) {
-        goto err;
-    }
-    eventLoop->apidata = state;
-
-    return 0;
-
-err:
-    if (state) {
-        delete state->events; state->events = nullptr;
-        delete state; state = nullptr;
-    }
-
-    return -1;
-}
-
-static int aeApiResize(aeEventLoop *eventLoop, int setsize) {
-    aeApiState *state = eventLoop->apidata;
-
-    auto new_events = new struct epoll_event[eventLoop->setsize];
-    memcpy(state->events, new_events, sizeof(struct epoll_event) * setsize);    
-    delete [] state->events;
-    state->events = new_events;
+int aeEventLoop::aeApiResize(int size) {
+    auto new_events = new struct epoll_event[size];
+    memcpy(new_events, epes_ptr_, sizeof(struct epoll_event) * setsize);    
+    delete [] epes_ptr_;
+    epes_ptr_ = new_events;
 
     return 0;
 }
 
-static void aeApiFree(aeEventLoop *eventLoop) {
-    aeApiState *state = eventLoop->apidata;
-
-    close(state->epfd);
-        delete state->events; state->events = nullptr;
-        delete state; state = nullptr;
-
+void aeEventLoop::aeApiFree() {
+    close(epfd_);
+    delete epes_ptr_; epes_ptr_ = nullptr;
 }
 
-static int aeApiAddEvent(aeEventLoop *eventLoop, int fd, int mask) {
-    aeApiState *state = eventLoop->apidata;
+int aeEventLoop::aeApiAddEvent(int fd, int mask) {
     struct epoll_event ee = {0};    /* avoid valgrind warning */
 
     /* If the fd was already monitored for some event, we need a MOD
      * operation. Otherwise we need an ADD operation. */
-    int op = eventLoop->events[fd].mask == AE_NONE ? EPOLL_CTL_ADD : EPOLL_CTL_MOD;
+    int op = events[fd].mask == AE_NONE ? EPOLL_CTL_ADD : EPOLL_CTL_MOD;
 
     ee.events = 0;
-    mask |= eventLoop->events[fd].mask; /* Merge old events */
+    mask |= events[fd].mask; /* Merge old events */
     if (mask & AE_READABLE) {
         ee.events |= EPOLLIN;
     }
@@ -81,17 +42,16 @@ static int aeApiAddEvent(aeEventLoop *eventLoop, int fd, int mask) {
     }
 
     ee.data.fd = fd;
-    if (epoll_ctl(state->epfd, op, fd, &ee) == -1) {
+    if (epoll_ctl(epfd_, op, fd, &ee) == -1) {
         return -1;
     }
 
     return 0;
 }
 
-static void aeApiDelEvent(aeEventLoop *eventLoop, int fd, int delmask) {
-    aeApiState *state = eventLoop->apidata;
+void aeEventLoop::aeApiDelEvent(int fd, int delmask) {
     struct epoll_event ee = {0}; /* avoid valgrind warning */
-    int mask = eventLoop->events[fd].mask & (~delmask);
+    int mask = events[fd].mask & (~delmask);
 
     ee.events = 0;
     if (mask & AE_READABLE) {
@@ -104,24 +64,23 @@ static void aeApiDelEvent(aeEventLoop *eventLoop, int fd, int delmask) {
 
     ee.data.fd = fd;
     if (mask != AE_NONE) {
-        epoll_ctl(state->epfd, EPOLL_CTL_MOD, fd, &ee);
+        epoll_ctl(epfd_, EPOLL_CTL_MOD, fd, &ee);
     } else {
         /* Note, Kernel < 2.6.9 requires a non null event pointer even for EPOLL_CTL_DEL. */
-        epoll_ctl(state->epfd, EPOLL_CTL_DEL, fd, &ee);
+        epoll_ctl(epfd_, EPOLL_CTL_DEL, fd, &ee);
     }
 }
 
-static int aeApiPoll(aeEventLoop *eventLoop, struct timeval *tvp) {
-    aeApiState *state = eventLoop->apidata;
+int aeEventLoop::aeApiPoll(struct timeval *tvp) {
     int retval, numevents = 0;
 
-    retval = epoll_wait(state->epfd, state->events, eventLoop->setsize,
+    retval = epoll_wait(epfd_, epes_ptr_, setsize,
                         tvp ? (tvp->tv_sec * 1000 + tvp->tv_usec / 1000) : -1);
     if (retval > 0) {
         numevents = retval;
         for (int i = 0; i < numevents; i++) {
             int mask = 0;
-            struct epoll_event *e = state->events + i;
+            struct epoll_event *e = epes_ptr_ + i;
 
             if (e->events & EPOLLIN) {
                 mask |= AE_READABLE;
@@ -135,8 +94,8 @@ static int aeApiPoll(aeEventLoop *eventLoop, struct timeval *tvp) {
             if (e->events & EPOLLHUP) {
                 mask |= AE_WRITABLE;
             }
-            eventLoop->fired[i].fd = e->data.fd;
-            eventLoop->fired[i].mask = mask;
+            fired[i].fd = e->data.fd;
+            fired[i].mask = mask;
         }
     }
 
@@ -158,9 +117,15 @@ int aeEventLoop::init(int size) {
     maxfd = -1;
     beforesleep = NULL;
 
-    if (aeApiCreate(this) == -1) {
+    epes_ptr_ = new struct epoll_event[size];
+    if (!epes_ptr_) {
+       goto err;
+    }
+    epfd_ = epoll_create(1024);  /* 1024 is just a hint for the kernel */
+    if (epfd_ == -1) {
         goto err;
     }
+
 
     /* Events with mask == AE_NONE are not set. So let's initialize the vector with it. */
     for (int i = 0; i < size; i++) {
@@ -200,7 +165,7 @@ int aeEventLoop::aeResizeSetSize(int setsize) {
         return AE_ERR;
     }
 
-    if (aeApiResize(this, setsize) == -1) {
+    if (aeApiResize(setsize) == -1) {
         return AE_ERR;
     }
 
@@ -225,7 +190,7 @@ int aeEventLoop::aeResizeSetSize(int setsize) {
 }
 
 aeEventLoop::~aeEventLoop() {
-    aeApiFree(this);
+    aeApiFree();
     
     delete events; events = nullptr;
     delete fired; fired = nullptr;
@@ -238,7 +203,7 @@ int aeEventLoop::aeCreateFileEvent(int fd, int mask, file_event_callback_t proc)
     }
     aeFileEvent *fe = &this->events[fd];
 
-    if (aeApiAddEvent(this, fd, mask) == -1) {
+    if (aeApiAddEvent(fd, mask) == -1) {
         return AE_ERR;
     }
 
@@ -268,7 +233,7 @@ void aeEventLoop::aeDeleteFileEvent(int fd, int mask) {
         return;
     }
 
-    aeApiDelEvent(this, fd, mask);
+    aeApiDelEvent(fd, mask);
 
     fe->mask &= ~mask;
     if (fd == this->maxfd && fe->mask == AE_NONE) {
@@ -511,7 +476,7 @@ int aeEventLoop::aeProcessEvents(int flags) {
             }
         }
 
-        numevents = aeApiPoll(this, tvp);
+        numevents = aeApiPoll(tvp);
         for (int i = 0; i < numevents; i++) {
             aeFileEvent *fe = &this->events[this->fired[i].fd];
             int mask = this->fired[i].mask;

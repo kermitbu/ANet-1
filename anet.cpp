@@ -69,11 +69,6 @@ int anetKeepAlive(char *err, int fd, int interval) {
         return ANET_ERR;
     }
 
-#ifdef __linux__
-    /* Default settings are more or less garbage, with the keepalive time
-     * set to 7200 by default on Linux. Modify settings to make the feature
-     * actually useful. */
-
     /* Send first probe after interval. */
     val = interval;
     if (setsockopt(fd, IPPROTO_TCP, TCP_KEEPIDLE, &val, sizeof(val)) < 0) {
@@ -98,10 +93,6 @@ int anetKeepAlive(char *err, int fd, int interval) {
         anetSetError(err, "setsockopt TCP_KEEPCNT: %s\n", strerror(errno));
         return ANET_ERR;
     }
-#else
-    ((void) interval); /* Avoid unused var warning for non Linux systems. */
-#endif
-
     return ANET_OK;
 }
 
